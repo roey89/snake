@@ -23,7 +23,7 @@ def init():
     DON'T TOUCH THIS
     """
     global snake
-    length = 10
+    length = 20
     snake = [(1, length - i) for i in range(length)]
 
     place_fruit((ARRAY_SIZE // 2, ARRAY_SIZE // 2))
