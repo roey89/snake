@@ -1,6 +1,12 @@
 from search import SearchProblem, astar, Duo
 import copy
 
+ARRAY_SIZE=60
+def illegal(next_head, size, curr_snake):
+    return next_head[0] < 0 or next_head[0] >= size or next_head[1] < 0 or \
+           next_head[1] >= size or next_head in curr_snake
+
+
 DIRECTIONS = {
     "LEFT": (-1, 0),
     "RIGHT": (1, 0),
@@ -23,11 +29,16 @@ class SnakeProblem(SearchProblem):
         return self.state
 
     def is_goal_state(self, state):
-        return state.snake[0] == self.fruit or state.depth == self.max_depth
+        return state.snake[0] == self.fruit
 
     def get_successors(self, state):
         self.expanded = self.expanded + 1
-        return [(state.do_move(move), move, 1) for move in (0, 1, 3)]
+        successors = []
+        for move in (0, 1, 3):
+            new_state = state.do_move(move)
+            if not illegal(new_state.snake[0], ARRAY_SIZE, new_state.snake[1:]):
+                successors.append((new_state, move, 1))
+        return successors
 
     def get_cost_of_actions(self, actions):
         return len(actions)
@@ -36,17 +47,19 @@ class SnakeProblem(SearchProblem):
 class SnakeState():
 
     def __init__(self, snake, direction, depth):
-        self.snake = snake
+        self.snake = copy.deepcopy(snake)
         self.direction = direction
         self.depth = depth
 
     def do_move(self, move):
         new_direction = (self.direction + move) % 4
-
         old_head = self.snake[0]
+
+        # new_head = old_head + movement (element-wise)
         movement = [DIRECTIONS[DIRS[move]]][0]
         new_head = (old_head[0] + movement[0], old_head[1] + movement[1])
 
+        # advance one step
         new_snake = copy.deepcopy(self.snake)
         del new_snake[-1]
         new_snake.insert(0, new_head)
@@ -59,7 +72,7 @@ def distance_heuristic(state, SnakeProblem):
     head = state.snake[0]
     for i in range(1, len(state.snake)):
         if head == state.snake[i]:
-            return SnakeProblem.board_size ^ 2
+            return SnakeProblem.board_size ** 2
     return manhattan_distance(head, SnakeProblem.fruit)
 
 

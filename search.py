@@ -136,6 +136,7 @@ def uniform_cost_search(problem):
             successors = problem.get_successors(current_board)
             for item in successors:
                 if item[0] not in been_there:
+
                     temp_lst = actions[:]
                     temp_lst.append(item[1])
                     temp_item = Duo([item[0], temp_lst])

@@ -9,24 +9,30 @@ import copy
 ARRAY_SIZE = 60
 
 DIRECTIONS = {
-    "LEFT": (-1, 0),
-    "RIGHT": (1, 0),
     "UP": (0, 1),
+    "RIGHT": (1, 0),
     "DOWN": (0, -1),
+    "LEFT": (-1, 0),
 }
 
 snake, fruit = None, None
 
 
 def init():
+    """
+    DON'T TOUCH THIS
+    """
     global snake
-    length = 20
+    length = 10
     snake = [(1, length - i) for i in range(length)]
 
     place_fruit((ARRAY_SIZE // 2, ARRAY_SIZE // 2))
 
 
 def place_fruit(coord=None):
+    """
+    DON'T TOUCH THIS
+    """
     global fruit
     if coord:
         fruit = coord
@@ -40,31 +46,35 @@ def place_fruit(coord=None):
             return
 
 
+def illegal(next_head, size, curr_snake):
+    return next_head[0] < 0 or next_head[0] >= size or next_head[1] < 0 or \
+           next_head[1] >= size or next_head in curr_snake
+
+
 def step(direction):
+    """
+    DON'T TOUCH THIS
+    """
     old_head = snake[0]
     movement = DIRECTIONS[direction]
     new_head = (old_head[0] + movement[0], old_head[1] + movement[1])
 
-    if (
-            new_head[0] < 0 or
-            new_head[0] >= ARRAY_SIZE or
-            new_head[1] < 0 or
-            new_head[1] >= ARRAY_SIZE or
-            new_head in snake
-    ):
+    if illegal(new_head, ARRAY_SIZE, snake):  # if move will result in loss
         return False
 
     if new_head == fruit:
         place_fruit()
     else:
-        tail = snake[-1]
-        del snake[-1]
+        del snake[-1]  # delete the tail
 
     snake.insert(0, new_head)
     return True
 
 
 def print_field():
+    """
+    DON'T TOUCH THIS
+    """
     os.system('clear')
     print('=' * (ARRAY_SIZE + 2))
     for y in range(ARRAY_SIZE - 1, -1, -1):
@@ -123,10 +133,10 @@ def run():
             direction = search_strategy(direction)
             print(DIRS[direction])
         # elif e.type == MOUSEBUTTONDOWN:
-        # if e.button == 3:
-        #     direction = (direction+1) % 4
-        # elif e.button == 1:
-        #     direction = (direction+3) % 4
+        #     if e.button == 3:
+        #         direction = (direction+1) % 4
+        #     elif e.button == 1:
+        #         direction = (direction+3) % 4
 
         if not step(DIRS[direction]):
             pygame.quit()
@@ -140,7 +150,7 @@ def run():
 
 
 def search_strategy(direction):
-    problem = blokus_problems.SnakeProblem(copy.deepcopy(snake), fruit, ARRAY_SIZE, direction, 3)
+    problem = blokus_problems.SnakeProblem(copy.deepcopy(snake), fruit, ARRAY_SIZE, direction, 2*ARRAY_SIZE)
     actions = search.astar(problem, heuristic=blokus_problems.distance_heuristic)
     new_direction = (direction + actions[0]) % 4
     return new_direction
@@ -151,7 +161,7 @@ def strategy(direction):
     xDistance = fruit[0] - head[0]
     yDistance = fruit[1] - head[1]
     movement = DIRECTIONS[DIRS[direction]]
-    bad_directions = forbbiden_directions(direction)
+    bad_directions = forbidden_directions(direction)
     if not not_forward(direction):
         if xDistance != 0:
             if movement[0] != 0:
@@ -179,19 +189,19 @@ def strategy(direction):
         return (direction + 1) % 4
 
 
-def forbbiden_directions(direction):
-    movments = []
-    for i in range(0,3):
+def forbidden_directions(direction):
+    movements = [DIRECTIONS[DIRS[(direction + 2) % 4]]]
+    for i in (0, 1, 3):
         old_head = snake[0]
         movement = DIRECTIONS[DIRS[(direction + i) % 4]]
         new_head = (old_head[0] + movement[0], old_head[1] + movement[1])
-        if new_head in snake:
-            movments.append(i)
-    return movments
+        if illegal(new_head, ARRAY_SIZE, snake):
+            movements.append(i)
+    return movements
 
 
 def not_forward(direction):
-    return 0 in forbbiden_directions(direction)
+    return 0 in forbidden_directions(direction)
 
 
 run()
