@@ -1,12 +1,12 @@
-import pygame
-from pygame.locals import *
+import os
+import time
 from random import randint
-import os, sys
-import search
-import blokus_problems
-import copy
 
-ARRAY_SIZE = 60
+import pygame
+
+import snake_problem
+
+BOARD_SIZE = 10
 
 DIRECTIONS = {
     "UP": (0, 1),
@@ -23,10 +23,10 @@ def init():
     DON'T TOUCH THIS
     """
     global snake
-    length = 20
-    snake = [(1, length - i) for i in range(length)]
+    length = 3
+    snake = [(1, length - j) for j in range(length)]
 
-    place_fruit((ARRAY_SIZE // 2, ARRAY_SIZE // 2))
+    place_fruit()
 
 
 def place_fruit(coord=None):
@@ -39,8 +39,8 @@ def place_fruit(coord=None):
         return
 
     while True:
-        x = randint(0, ARRAY_SIZE - 1)
-        y = randint(0, ARRAY_SIZE - 1)
+        x = randint(0, BOARD_SIZE - 1)
+        y = randint(0, BOARD_SIZE - 1)
         if (x, y) not in snake:
             fruit = x, y
             return
@@ -59,16 +59,20 @@ def step(direction):
     movement = DIRECTIONS[direction]
     new_head = (old_head[0] + movement[0], old_head[1] + movement[1])
 
-    if illegal(new_head, ARRAY_SIZE, snake):  # if move will result in loss
+    score = float(len(snake)) * 100 / (BOARD_SIZE ** 2)
+
+    if illegal(new_head, BOARD_SIZE, snake):  # if move will result in loss
+        print("You're Dead\nScore: " + str(score) + "%")
         return False
+
+    snake.insert(0, new_head)
 
     if new_head == fruit:
         place_fruit()
     else:
         del snake[-1]  # delete the tail
 
-    snake.insert(0, new_head)
-    return True
+    return score
 
 
 def print_field():
@@ -76,10 +80,10 @@ def print_field():
     DON'T TOUCH THIS
     """
     os.system('clear')
-    print('=' * (ARRAY_SIZE + 2))
-    for y in range(ARRAY_SIZE - 1, -1, -1):
+    print('=' * (BOARD_SIZE + 2))
+    for y in range(BOARD_SIZE - 1, -1, -1):
         print('|', end='')
-        for x in range(ARRAY_SIZE):
+        for x in range(BOARD_SIZE):
             out = ' '
             if (x, y) in snake:
                 out = 'X'
@@ -87,7 +91,7 @@ def print_field():
                 out = 'O'
             print(out, end='')
         print('|')
-    print('=' * (ARRAY_SIZE + 2))
+    print('=' * (BOARD_SIZE + 2))
 
 
 def test():
@@ -115,45 +119,58 @@ def run():
     direction = 0
 
     pygame.init()
-    s = pygame.display.set_mode((ARRAY_SIZE * 10, ARRAY_SIZE * 10))
-    # pygame.display.set_caption('Snake')
+    s = pygame.display.set_mode((BOARD_SIZE * 10, BOARD_SIZE * 10))
+    pygame.display.set_caption('Snake')
     appleimage = pygame.Surface((10, 10))
     appleimage.fill((0, 255, 0))
     img = pygame.Surface((10, 10))
     img.fill((255, 0, 0))
+    headimage = pygame.Surface((10, 10))
+    headimage.fill((0, 0, 255))
     clock = pygame.time.Clock()
 
     pygame.time.set_timer(1, 100)
 
+    score = 0
+    actions = []
     while True:
         e = pygame.event.wait()
-        if e.type == QUIT:
+        if e.type == pygame.QUIT:
             pygame.quit()
         else:
-            direction = search_strategy(direction)
-            print(DIRS[direction])
+            if len(actions) == 0:
+                # direction = 0
+                actions = search_strategy(direction)
+            direction = actions[0]
+            actions = actions[1:]
         # elif e.type == MOUSEBUTTONDOWN:
         #     if e.button == 3:
         #         direction = (direction+1) % 4
         #     elif e.button == 1:
         #         direction = (direction+3) % 4
 
-        if not step(DIRS[direction]):
+        temp_score = step(DIRS[direction])
+        if temp_score:
+            score = temp_score
+
+        if not temp_score:
             pygame.quit()
-            sys.exit(1)
+            return score
 
         s.fill((255, 255, 255))
-        for bit in snake:
-            s.blit(img, (bit[0] * 10, (ARRAY_SIZE - bit[1] - 1) * 10))
-        s.blit(appleimage, (fruit[0] * 10, (ARRAY_SIZE - fruit[1] - 1) * 10))
+        s.blit(headimage, (snake[0][0] * 10, (BOARD_SIZE - snake[0][1] - 1) * 10))
+        for bit in snake[1:]:
+            s.blit(img, (bit[0] * 10, (BOARD_SIZE - bit[1] - 1) * 10))
+        s.blit(appleimage, (fruit[0] * 10, (BOARD_SIZE - fruit[1] - 1) * 10))
         pygame.display.flip()
 
 
 def search_strategy(direction):
-    problem = blokus_problems.SnakeProblem(copy.deepcopy(snake), fruit, ARRAY_SIZE, direction, 2*ARRAY_SIZE)
-    actions = search.astar(problem, heuristic=blokus_problems.distance_heuristic)
-    new_direction = (direction + actions[0]) % 4
-    return new_direction
+    problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, BOARD_SIZE ** 3 + 100)
+    actions = snake_problem.astar(problem, heuristic=snake_problem.distance_heuristic)
+    if actions is None or len(actions) == 0:
+        actions = [0]
+    return actions
 
 
 def strategy(direction):
@@ -162,31 +179,34 @@ def strategy(direction):
     yDistance = fruit[1] - head[1]
     movement = DIRECTIONS[DIRS[direction]]
     bad_directions = forbidden_directions(direction)
+    move = None
     if not not_forward(direction):
         if xDistance != 0:
             if movement[0] != 0:
                 if movement[0] * xDistance > 0:
-                    return direction
+                    move = direction
                 else:
-                    return (direction + 1) % 4
+                    move = (direction + 1) % 4
             else:
                 if movement[1] * xDistance > 0:
-                    return (direction + 1) % 4
+                    move = (direction + 1) % 4
                 else:
-                    return (direction + 3) % 4
+                    move = (direction + 3) % 4
         else:
             if movement[1] != 0:
                 if movement[1] * yDistance > 0:
-                    return direction
+                    move = direction
                 else:
-                    return (direction + 3) % 4
+                    move = (direction + 3) % 4
             else:
                 if movement[0] * yDistance > 0:
-                    return (direction + 3) % 4
+                    move = (direction + 3) % 4
                 else:
-                    return (direction + 1) % 4
-    else:
+                    move = (direction + 1) % 4
+    if move is None:
         return (direction + 1) % 4
+
+    return move
 
 
 def forbidden_directions(direction):
@@ -195,7 +215,7 @@ def forbidden_directions(direction):
         old_head = snake[0]
         movement = DIRECTIONS[DIRS[(direction + i) % 4]]
         new_head = (old_head[0] + movement[0], old_head[1] + movement[1])
-        if illegal(new_head, ARRAY_SIZE, snake):
+        if illegal(new_head, BOARD_SIZE, snake):
             movements.append(i)
     return movements
 
@@ -204,4 +224,14 @@ def not_forward(direction):
     return 0 in forbidden_directions(direction)
 
 
-run()
+if __name__ == '__main__':
+    start = time.time()
+    runs = 25
+    scores = []
+    for i in range(runs):
+        scores.append(run())
+    end = time.time()
+    print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("\tOut of " + str(runs) + " runs - Avg. Score: " + str(float(sum(scores)) / runs) + "!")
+    print("\tOne run took " + str(int(end - start) / runs) + " seconds in average!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
