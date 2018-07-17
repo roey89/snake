@@ -9,7 +9,6 @@
 import sys
 import inspect
 import heapq, random
-import featureExtractors
 
 """
  Data structures useful for implementing SearchAgents

@@ -1,7 +1,3 @@
-from util import *
-from util import raiseNotDefined
-import time
-import traceback
 import snake
 
 

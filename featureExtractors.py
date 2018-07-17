@@ -8,10 +8,8 @@
 
 "Feature extractors for Snake game states"
 
-from snake import DIRECTIONS, illegal
-from snake_problem import manhattan_distance
 import util
-
+import snake_problem
 
 class FeatureExtractor:
     def getFeatures(self, state, action):
@@ -52,8 +50,8 @@ def blockedDirections(snake, boardSize):
         return 0
     blocked = 0
     head = snake[0]
-    for direction in DIRECTIONS.values():
-        if illegal((head[0] + direction[0], head[1] + direction[1]), boardSize, snake):
+    for direction in snake.DIRECTIONS.values():
+        if snake.illegal((head[0] + direction[0], head[1] + direction[1]), boardSize, snake):
             blocked += 1
     return blocked
 
@@ -83,12 +81,12 @@ class SimpleExtractor(FeatureExtractor):
         features["bias"] = 1.0
 
         # Tried to order by importance
-        if not illegal(head, boardSize, snake):
+        if not snake.illegal(head, boardSize, snake):
             features["legal-move"] = 1.0
             if fruit == (head(0), head(1)):
                 features["eats-fruit"] = 1.0
-        features["head-fruit-distance"] = manhattan_distance(head, fruit)
-        features["head-tail-distance"] = manhattan_distance(head, tail)
+        features["head-fruit-distance"] = snake_problem.manhattan_distance(head, fruit)
+        features["head-tail-distance"] = snake_problem.manhattan_distance(head, tail)
         features["#-of-blocked-directions"] = blockedDirections(snake, boardSize)
         if features["#-of-blocked-directions"] == 4:
             features["is-totally=blocked"] = 1.0

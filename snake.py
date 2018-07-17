@@ -1,5 +1,4 @@
 import os
-import time
 from random import randint
 
 import pygame
@@ -122,7 +121,7 @@ DIRS = ['UP', 'RIGHT', 'DOWN', 'LEFT']
 def run():
     init()
 
-    learning_length = 10000
+    learning_length = 50000
     agent = learn(learning_length)
 
     direction = 0
