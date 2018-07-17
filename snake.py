@@ -5,6 +5,8 @@ import pygame
 import snake_problem
 import learningGame
 import learningAgents
+import pickle
+import util
 
 BOARD_SIZE = 10
 
@@ -121,11 +123,10 @@ DIRS = ['UP', 'RIGHT', 'DOWN', 'LEFT']
 def run():
     init()
 
-    learning_length = 50000
+    learning_length = 1
     agent = learn(learning_length)
 
     direction = 0
-
     pygame.init()
     s = pygame.display.set_mode((BOARD_SIZE * 10, BOARD_SIZE * 10))
     pygame.display.set_caption('Snake')
@@ -168,29 +169,40 @@ def run():
 
 
 def learn(learning_length):
-    direction = 0
+    temp_w=util.Counter()
+    with open('./variables', 'rb') as f:
+        try:
+            temp_w = pickle.load(f)
+        except:
+            pass
 
-    state = snake_problem.SnakeState(snake, BOARD_SIZE, direction, fruit)
+
+    direction = 0
+    state = snake_problem.SnakeState(snake, BOARD_SIZE, direction, fruit, 0)
 
     agent = learningAgents.ApproximateQAgent()
 
     game = learningGame.Game(agent, state, learning_length)
 
-    game.run()
+    game.learn()
 
+    game.agent.w = game.agent.w + temp_w
+    os.remove('./variables')
+    with open('./variables', 'wb') as f:
+        pickle.dump(game.agent.w, f)
     return game.agent
 
 
 def learned_strategy(agent, direction):
-    problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, BOARD_SIZE ** 3 + 100)
-    actions = snake_problem.astar(problem, heuristic=snake_problem.learned_heuristic, agent=agent)
+    problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, 7)
+    actions = snake_problem.astar(problem, heuristic=snake_problem.merged_heuristic, agent=agent)
     if actions is None or len(actions) == 0:
         actions = [0]
     return actions
 
 
 def search_strategy(direction):
-    problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, BOARD_SIZE ** 3 + 100)
+    problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, 7)
     actions = snake_problem.astar(problem, heuristic=snake_problem.distance_heuristic)
     if actions is None or len(actions) == 0:
         actions = [0]

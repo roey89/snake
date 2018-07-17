@@ -298,7 +298,7 @@ class Counter(dict):
         addend = Counter()
         for key in self:
             if key in y:
-                addend[key] = self[key] + y[key]
+                addend[key] = 0.5*(self[key] + y[key])  # TODO: I added the 0.5 (wasnt there before)
             else:
                 addend[key] = self[key]
         for key in y:
