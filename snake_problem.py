@@ -115,7 +115,8 @@ class SnakeState:
 
         # advance one step
         new_snake = copy.deepcopy(self.snake)
-        del new_snake[-1]
+        if not new_head == self.fruit:
+            del new_snake[-1]
         new_snake.insert(0, new_head)
         new_state = SnakeState(new_snake, self.board_size, new_direction, self.fruit, self.depth + 1)
 
@@ -211,7 +212,7 @@ def learned_heuristic(state, snakeproblem, agent):
 
 
 def merged_heuristic(state, snakeproblem=None, agent=None):
-    return 0.5*learned_heuristic(state, snakeproblem, agent) + 0.5*distance_heuristic(state, snakeproblem, agent)
+    return 0.5 * learned_heuristic(state, snakeproblem, agent) + 0.5 * distance_heuristic(state, snakeproblem, agent)
 
 
 def manhattan_distance(p1, p2):
