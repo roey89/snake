@@ -27,7 +27,7 @@ def init():
     length = 3
     snake = [(1, length - j) for j in range(length)]
 
-    place_fruit((3,3))
+    place_fruit((3, 3))
 
 
 def place_fruit(coord=None):
@@ -40,6 +40,7 @@ def place_fruit(coord=None):
         return
 
     fruit = place_fruit_help(BOARD_SIZE)
+
 
 def place_fruit_help(size, thisSnake=None):
     if thisSnake == None:
@@ -147,7 +148,7 @@ def run():
             pygame.quit()
         else:
             if len(actions) == 0:
-                actions = learned_strategy(agent,direction)
+                actions = learned_strategy(agent, direction)
             direction = actions[0]
             actions = actions[1:]
 
@@ -166,25 +167,28 @@ def run():
         s.blit(appleimage, (fruit[0] * 10, (BOARD_SIZE - fruit[1] - 1) * 10))
         pygame.display.flip()
 
+
 def learn(learning_length):
     direction = 0
 
-    state = snake_problem.SnakeState(snake,BOARD_SIZE,direction,fruit)
+    state = snake_problem.SnakeState(snake, BOARD_SIZE, direction, fruit)
 
     agent = learningAgents.ApproximateQAgent()
 
-    game = learningGame.Game(agent,state,learning_length)
+    game = learningGame.Game(agent, state, learning_length)
 
     game.run()
 
     return game.agent
 
-def learned_strategy(agent,direction):
+
+def learned_strategy(agent, direction):
     problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, BOARD_SIZE ** 3 + 100)
-    actions = snake_problem.astar(problem, heuristic=snake_problem.learned_heuristic,agent=agent)
+    actions = snake_problem.astar(problem, heuristic=snake_problem.learned_heuristic, agent=agent)
     if actions is None or len(actions) == 0:
         actions = [0]
     return actions
+
 
 def search_strategy(direction):
     problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, BOARD_SIZE ** 3 + 100)
@@ -243,9 +247,6 @@ def forbidden_directions(direction):
 
 def not_forward(direction):
     return 0 in forbidden_directions(direction)
-
-
-
 
 
 if __name__ == '__main__':

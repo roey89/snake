@@ -97,7 +97,6 @@ class SnakeProblem(SearchProblem):
         return len(actions)
 
 
-
 class SnakeState:
     def __init__(self, snake, board_size, direction, fruit):
         self.snake = copy.deepcopy(snake)
@@ -133,6 +132,7 @@ class SnakeState:
             if not illegal_state(self.do_move(move)):
                 legal_actions.append(move)
         return legal_actions
+
 
 def astar(problem, heuristic, agent=None):
     fringe = PriorityQueue()
@@ -179,6 +179,7 @@ def check_goal_state(problem):
             been_there.append(current_board)
     return True
 
+
 def snake_to_check_depth(length):
     """
     Works only with a 10x10 board.
@@ -194,6 +195,7 @@ def snake_to_check_depth(length):
     else:
         return 1000
 
+
 def distance_heuristic(state, snakeproblem=None, agent=None):
     head = state.snake[0]
     if illegal(head, state.board_size, state.snake[1:]):
@@ -204,16 +206,19 @@ def distance_heuristic(state, snakeproblem=None, agent=None):
         fruit = snakeproblem.fruit
     return manhattan_distance(head, fruit)
 
+
 def manhattan_distance(p1, p2):
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
 
 def illegal_state(state):
     head = state.snake[0]
     cond1 = not head in state.snake[1:len(state.snake)]
-    cond2 = head[0] >=0 and head[1] >=0
+    cond2 = head[0] >= 0 and head[1] >= 0
     cond3 = head[0] < state.board_size and head[1] < state.board_size
 
     return not (cond1 and cond2 and cond3)
+
 
 def learned_heuristic(state, snakeproblem, agent):
     return agent.getValue(state)
