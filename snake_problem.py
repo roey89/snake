@@ -71,7 +71,7 @@ class Duo(list):
 
 class SnakeProblem(SearchProblem):
     def __init__(self, snake, fruit, board_size, direction, max_depth):
-        self.state = SnakeState(snake, board_size, direction)
+        self.state = SnakeState(snake, board_size, direction, fruit)
         self.fruit = fruit
         self.expanded = 0
         self.max_depth = max_depth
@@ -97,11 +97,13 @@ class SnakeProblem(SearchProblem):
         return len(actions)
 
 
+
 class SnakeState:
-    def __init__(self, snake, board_size, direction):
+    def __init__(self, snake, board_size, direction, fruit):
         self.snake = copy.deepcopy(snake)
         self.board_size = board_size
         self.direction = direction
+        self.fruit = fruit
 
     def do_move(self, move):
         new_direction = (self.direction + move) % 4
@@ -115,12 +117,24 @@ class SnakeState:
         new_snake = copy.deepcopy(self.snake)
         del new_snake[-1]
         new_snake.insert(0, new_head)
-        new_state = SnakeState(new_snake, self.board_size, new_direction)
+        new_state = SnakeState(new_snake, self.board_size, new_direction, self.fruit)
 
         return new_state
 
+    def score(self):
+        return len(self.snake)
 
-def astar(problem, heuristic):
+    def illegal_state(self):
+        return illegal_state(self)
+
+    def getLegalActions(self):
+        legal_actions = []
+        for move in (0, 1, 2, 3):
+            if not illegal_state(self.do_move(move)):
+                legal_actions.append(move)
+        return legal_actions
+
+def astar(problem, heuristic, agent=None):
     fringe = PriorityQueue()
     been_there = []
     temp_item = Duo([problem.get_start_state(), []])
@@ -141,7 +155,7 @@ def astar(problem, heuristic):
                 temp_actions = actions[:]
                 temp_actions.append(item[1])
                 temp_item = Duo([item[0], temp_actions])
-                priority = problem.get_cost_of_actions(temp_actions) + heuristic(item[0], problem)
+                priority = problem.get_cost_of_actions(temp_actions) + heuristic(item[0], problem, agent)
                 fringe.push(temp_item, priority)
             been_there.append(current_board)
 
@@ -180,12 +194,26 @@ def snake_to_check_depth(length):
     else:
         return 1000
 
-def distance_heuristic(state, snakeproblem):
+def distance_heuristic(state, snakeproblem=None, agent=None):
     head = state.snake[0]
     if illegal(head, state.board_size, state.snake[1:]):
         return state.board_size ** 3
-    return manhattan_distance(head, snakeproblem.fruit)
-
+    if snakeproblem == None:
+        fruit = state.fruit
+    else:
+        fruit = snakeproblem.fruit
+    return manhattan_distance(head, fruit)
 
 def manhattan_distance(p1, p2):
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+def illegal_state(state):
+    head = state.snake[0]
+    cond1 = not head in state.snake[1:len(state.snake)]
+    cond2 = head[0] >=0 and head[1] >=0
+    cond3 = head[0] < state.board_size and head[1] < state.board_size
+
+    return not (cond1 and cond2 and cond3)
+
+def learned_heuristic(state, snakeproblem, agent):
+    return agent.getValue(state)
