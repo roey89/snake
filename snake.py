@@ -123,7 +123,7 @@ DIRS = ['UP', 'RIGHT', 'DOWN', 'LEFT']
 def run():
     init()
 
-    learning_length = 1
+    learning_length = 12000
     agent = learn(learning_length)
 
     direction = 0
@@ -195,7 +195,7 @@ def learn(learning_length):
 
 def learned_strategy(agent, direction):
     problem = snake_problem.SnakeProblem(snake, fruit, BOARD_SIZE, direction, 7)
-    actions = snake_problem.astar(problem, heuristic=snake_problem.merged_heuristic, agent=agent)
+    actions = snake_problem.astar(problem, heuristic=snake_problem.learned_heuristic, agent=agent)
     if actions is None or len(actions) == 0:
         actions = [0]
     return actions
