@@ -212,7 +212,7 @@ def learned_heuristic(state, snakeproblem, agent):
 
 
 def merged_heuristic(state, snakeproblem=None, agent=None):
-    return 0.5 * learned_heuristic(state, snakeproblem, agent) + 0.5 * distance_heuristic(state, snakeproblem, agent)
+    return 0.9 * learned_heuristic(state, snakeproblem, agent) + 0.1 * distance_heuristic(state, snakeproblem, agent)
 
 
 def manhattan_distance(p1, p2):
