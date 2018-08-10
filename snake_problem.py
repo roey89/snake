@@ -1,9 +1,9 @@
 import copy
 
 import util
-from snake import BOARD_SIZE
 from util import PriorityQueue
 from util import Queue
+import numpy as np
 
 
 def illegal(next_head, size, curr_snake):
@@ -80,7 +80,9 @@ class SnakeProblem(SearchProblem):
         return self.state
 
     def is_goal_state(self, state):
-        return state.snake[0] == self.fruit or self.expanded == self.max_depth
+        if state.dead_end():
+            return False
+        return state.snake[0] == self.fruit or state.depth == self.max_depth
 
     def get_successors(self, state):
         if self.expanded == 0:
@@ -89,7 +91,7 @@ class SnakeProblem(SearchProblem):
         successors = []
         for move in (0, 1, 2, 3):
             new_state = state.do_move(move)
-            if not illegal(new_state.snake[0], BOARD_SIZE, new_state.snake[1:]):
+            if not illegal(new_state.snake[0], state.board_size, new_state.snake[1:]):
                 successors.append((new_state, move))
         return successors
 
@@ -149,7 +151,12 @@ def astar(problem, heuristic, agent=None):
             return None
         current_board, actions = fringe.pop().lst
         if problem.is_goal_state(current_board):
+            # check_problem = SnakeProblem(current_board.snake, (-1, -1), problem.state.board_size,
+            #                             problem.state.direction, 100)
+            # if check_goal_state(check_problem):
             return actions
+        # else:
+        #    been_there.append(current_board)
         if current_board not in been_there:
             for item in problem.get_successors(current_board):
                 temp_actions = actions[:]
@@ -207,14 +214,6 @@ def distance_heuristic(state, snakeproblem=None, agent=None):
     return manhattan_distance(head, fruit)
 
 
-def learned_heuristic(state, snakeproblem, agent):
-    return state.board_size - agent.getValue(state)
-
-
-def merged_heuristic(state, snakeproblem=None, agent=None):
-    return 0.9 * learned_heuristic(state, snakeproblem, agent) + 0.1 * distance_heuristic(state, snakeproblem, agent)
-
-
 def manhattan_distance(p1, p2):
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
@@ -226,3 +225,156 @@ def illegal_state(state):
     cond3 = head[0] < state.board_size and head[1] < state.board_size
 
     return not (cond1 and cond2 and cond3)
+
+
+def learned_heuristic(state, snakeproblem, agent):
+    return state.board_size - agent.getValue(state)
+
+
+def combined_heuristic(state, snakeproblem, agent):
+    if blockedDirections(state) <= 0:
+        return distance_heuristic(state, snakeproblem, agent)
+    area_heuristic = areaAroundSnake(state)
+    if area_heuristic == None:
+        return distance_heuristic(state, snakeproblem, agent)
+    if area_heuristic <= 0:
+        return state.board_size ** 3
+    score = (len(state.snake) * 1.0) / (state.board_size ** 2)
+    return distance_heuristic(state, snakeproblem, agent) + 10 * (2 - score) / (area_heuristic ** (1 + score))
+
+
+def areaAroundSnake(state):
+    areas = get_componnents(state)
+    if len(areas) <= 1 or len(areas[0]) > state.board_size ** 2 - state.board_size:
+        return None
+    head_areas = []
+    for area in areas:
+        if pointNearArea(area, state.snake[0]):
+            head_areas.append(area)
+
+    max_rank = -np.inf
+    for area in head_areas:
+        size = len(area)
+        i = len(state.snake) - 1
+        while i > 0:
+            if pointNearArea(area, state.snake[i]):
+                break
+            i = i - 1
+        rank = size - len(state.snake) + i
+        if rank > max_rank:
+            max_rank = rank
+
+    return max_rank
+
+
+def get_componnents(state):
+    points = []
+    for x in range(state.board_size):
+        for y in range(state.board_size):
+            if not (x, y) in state.snake:
+                points.append(Point((x, y)))
+    for i in range(len(points) - 1):
+        for j in range(i + 1, min(i + state.board_size, len(points))):
+            point = points[i]
+            other_point = points[j]
+            if neighbors(point.position, other_point.position):
+                point.add_link(other_point)
+                other_point.add_link(point)
+    points = set(points)
+    return connected_components(points)
+
+
+def connected_components(points):
+    # List of connected components found. The order is random.
+    result = []
+
+    # Make a copy of the set, so we can modify it.
+    points = set(points)
+
+    # Iterate while we still have nodes to process.
+    while points:
+
+        # Get a random node and remove it from the global set.
+        point = points.pop()
+
+        # This set will contain the next group of nodes connected to each other.
+        group = {point}
+
+        # Build a queue with this node in it.
+        queue = [point]
+
+        # Iterate the queue.
+        # When it's empty, we finished visiting a group of connected nodes.
+        while queue:
+            # Consume the next item from the queue.
+            point = queue.pop(0)
+
+            # Fetch the neighbors.
+            neighbors = point.links
+
+            # Remove the neighbors we already visited.
+            neighbors.difference_update(group)
+
+            # Remove the remaining nodes from the global set.
+            points.difference_update(neighbors)
+
+            # Add them to the group of connected nodes.
+            group.update(neighbors)
+
+            # Add them to the queue, so we visit them in the next iterations.
+            queue.extend(neighbors)
+
+        # Add the group to the list of groups.
+        result.append(group)
+
+    # Return the list of groups.
+    return result
+
+
+def pointNearArea(area, point):
+    for otherPoint in area:
+        if neighbors(point, otherPoint.position):
+            return True
+
+
+def neighbors(point1, point2):
+    if point1 == point2:
+        return False
+    if abs(point2[0] - point1[0]) + abs(point2[1] - point1[1]) < 2:
+        return True
+    return False
+
+
+class Point(object):
+    def __init__(self, position):
+        self.__position = position
+        self.__links = set()
+
+    @property
+    def position(self):
+        return self.__position
+
+    @property
+    def links(self):
+        return set(self.__links)
+
+    def add_link(self, other):
+        self.__links.add(other)
+        other.__links.add(self)
+
+
+def blockedDirections(state):
+    """
+    Counts the number of direction in which the snake is blocked
+    """
+    snake_copy = copy.deepcopy(state.snake)
+    boardSize = state.board_size
+    if len(snake_copy) < 3:
+        return 1
+    blocked = 0
+    head = snake_copy[0]
+    del snake_copy[-1]
+    for direction in DIRECTIONS.values():
+        if illegal((head[0] + direction[0], head[1] + direction[1]), boardSize, snake_copy):
+            blocked += 1
+    return blocked

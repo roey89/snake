@@ -11,6 +11,7 @@
 import util
 import snake_problem
 
+
 class FeatureExtractor:
     def getFeatures(self, state, action):
         """
@@ -28,62 +29,40 @@ class IdentityExtractor(FeatureExtractor):
         return feats
 
 
-def numberOfTurns(snake):
-    """
-    Counts the number of turns. snake is an array of (x,y) coordinates
-    """
-    if len(snake) < 3:
-        return 0
-    turns = 0
-    for i in range(len(snake) - 2):
-        if (snake(i + 2)[0] - snake(i + 1)[0], snake(i + 2)[1] - snake(i + 1)[1]) != \
-                (snake(i + 1)[0] - snake(i)[0], snake(i + 1)[1] - snake(i)[1]):
-            turns += 1
-    return turns
+def illegal(next_head, size, curr_snake):
+    return next_head[0] < 0 or next_head[0] >= size or next_head[1] < 0 or \
+           next_head[1] >= size or next_head in curr_snake
 
-
-def blockedDirections(snake, boardSize):
-    """
-    Counts the number of direction in which the snake is blocked
-    """
-    if len(snake) < 3:
-        return 0
-    blocked = 0
-    head = snake[0]
-    for direction in snake.DIRECTIONS.values():
-        if snake.illegal((head[0] + direction[0], head[1] + direction[1]), boardSize, snake):
-            blocked += 1
-    return blocked
 
 def areaAroundSnake(state):
-  areas = get_componnents(state)
-  head_area = []
-  for area in areas:
-    if pointNearArea(area,state.snake[0]):
-      head_area = area
-      break
+    areas = get_componnents(state)
+    head_area = []
+    for area in areas:
+        if pointNearArea(area, state.snake[0]):
+            head_area = area
+            break
 
-  if pointNearArea(head_area,state.snake[-1]):
-    bool_var = 10
-  else:
-    bool_var = 0
+    if pointNearArea(head_area, state.snake[-1]):
+        bool_var = 1
+    else:
+        bool_var = 0
 
-  return len(head_area), bool_var
-
+    return len(head_area), bool_var
 
 
 def get_componnents(state):
     points = []
     for x in range(state.board_size):
-      for y in range(state.board_size):
-        if not (x,y) in state.snake:
-          points.append(Point((x,y)))
+        for y in range(state.board_size):
+            if not (x, y) in state.snake:
+                points.append(Point((x, y)))
     for point in points:
         for other_point in points:
             if neighbors(point.position, other_point.position):
                 point.add_link(other_point)
     points = set(points)
     return connected_components(points)
+
 
 def connected_components(points):
     # List of connected components found. The order is random.
@@ -131,10 +110,12 @@ def connected_components(points):
     # Return the list of groups.
     return result
 
+
 def pointNearArea(area, point):
-  for otherPoint in area:
-    if neighbors(point,otherPoint.position):
-      return True
+    for otherPoint in area:
+        if neighbors(point, otherPoint.position):
+            return True
+
 
 class SimpleExtractor(FeatureExtractor):
     """
@@ -151,32 +132,24 @@ class SimpleExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         nextState = state.do_move(action)
-        fruit = nextState.getFruit()
-        snake = nextState.getSnake()
-        head = snake[0]
-        tail = snake[-1]
         boardSize = state.board_size
-
+        fruit = nextState.fruit
+        snake = nextState.snake
+        head = snake[0]
         features = util.Counter()
+
         features["bias"] = 1.0
+        features["head-fruit-distance"] = snake_problem.manhattan_distance(head, fruit) / boardSize ** 2
+        if state.fruit == head:
+            features["eats-fruit"] = 1.0
+        if snake_problem.illegal(head, boardSize, snake):
+            features["illegal"] = 1.0
 
-        # Tried to order by importance
-        """
-        if not snake.illegal(head, boardSize, snake):
-            features["legal-move"] = 1.0
-            if fruit == (head(0), head(1)):
-                features["eats-fruit"] = 1.0
-        features["head-fruit-distance"] = snake_problem.manhattan_distance(head, fruit)
-        features["#-of-blocked-directions"] = blockedDirections(snake, boardSize)
-        if features["#-of-blocked-directions"] == 4:
-            features["is-totally=blocked"] = 1.0
-        """
-        features["head-fruit-distance"] = snake_problem.manhattan_distance(head, fruit)
-        area, near_tail = areaAroundSnake(state)
-        features["head-area"] = area
+        area, near_tail = areaAroundSnake(nextState)
+        features["head-area"] = area / 100
         features["head-tail"] = near_tail
-
         features.divideAll(10.0)
+
         return features
 
 
@@ -186,6 +159,7 @@ def neighbors(point1, point2):
     if abs(point2[0] - point1[0]) + abs(point2[1] - point1[1]) < 2:
         return True
     return False
+
 
 class Point(object):
     def __init__(self, position):

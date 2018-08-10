@@ -27,6 +27,8 @@ class Game:
         numMoves = 0
 
         while not self.gameOver:
+            # if numMoves % 1000 == 999:
+            #     print("Done learning " + str(100 * (numMoves+1) / self.gameLength) + "%")
             action = self.agent.getAction(currentState)
             if not action is None:
                 self.moveHistory.append(action)
